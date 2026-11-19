@@ -1,50 +1,63 @@
 <?php
-$dbFile = __DIR__ . '/baza.sqlite';
-$sqlFile = __DIR__ . '/baza.sql';
+$rows = [];
+$message = "";
 
-$pdo = new PDO('sqlite:' . $dbFile);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["run_db"])) {
+    try {
+        $conn = new PDO("sqlite:" . __DIR__ . "/baza.sqlite");
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$check = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='uczniowie'")->fetch();
-if (!$check && file_exists($sqlFile)) {
-    $pdo->exec(file_get_contents($sqlFile));
+        $sql = file_get_contents(__DIR__ . "/baza.sql");
+        $conn->exec($sql);
+
+        $stmt = $conn->query("SELECT id, imie, nazwisko, klasa FROM uczniowie");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $message = "Baza danych została uruchomiona.";
+    } catch (PDOException $e) {
+        $message = "Błąd: " . $e->getMessage();
+    }
 }
-
-$rows = $pdo->query("SELECT * FROM uczniowie")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>prostastrona</title>
+    <title>PHP + SQLite (W3Schools style)</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 650px; margin: 40px auto; padding: 0 16px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background: #f4f4f4; }
+        table { border-collapse: collapse; width: 60%; margin-top: 15px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
-    <h1>pracadomowa</h1>
+
+<h2>Uruchamianie bazy danych</h2>
+
+<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+    <button type="submit" name="run_db">Uruchom bazę danych</button>
+</form>
+
+<?php if ($message != ""): ?>
+    <p><?php echo htmlspecialchars($message); ?></p>
+<?php endif; ?>
+
+<?php if (count($rows) > 0): ?>
     <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Imię</th>
-                <th>Nazwisko</th>
-                <th>Klasa</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($rows as $row): ?>
-            <tr>
-                <td><?= htmlspecialchars($row['id']) ?></td>
-                <td><?= htmlspecialchars($row['imie']) ?></td>
-                <td><?= htmlspecialchars($row['nazwisko']) ?></td>
-                <td><?= htmlspecialchars($row['klasa']) ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
+        <tr>
+            <th>ID</th>
+            <th>Imię</th>
+            <th>Nazwisko</th>
+            <th>Klasa</th>
+        </tr>
+        <?php foreach ($rows as $row): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($row["id"]); ?></td>
+            <td><?php echo htmlspecialchars($row["imie"]); ?></td>
+            <td><?php echo htmlspecialchars($row["nazwisko"]); ?></td>
+            <td><?php echo htmlspecialchars($row["klasa"]); ?></td>
+        </tr>
+        <?php endforeach; ?>
     </table>
+<?php endif; ?>
+
 </body>
 </html>
